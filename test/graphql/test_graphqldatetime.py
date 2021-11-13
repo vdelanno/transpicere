@@ -1,10 +1,10 @@
 import pytest
 from decimal import Decimal
 from transpicere.graphql.graphqldatetime import (
-    parse_datetime, GraphQLDatetime, parse_date, GraphQLDate, GraphQLError)
+    parse_datetime, GraphQLDatetime, GraphQLDate, GraphQLTime, GraphQLError)
 from scalar_schema import check_scalar_schema
 import sys
-from datetime import datetime, date
+from datetime import datetime, date, time
 from dateutil.tz import tzutc
 
 
@@ -141,4 +141,18 @@ def test_graphqldatetime_parse_error(test_input):
 def test_graphqldate_schema(input_value, inner_value):
     expected = inner_value.isoformat()
     check_scalar_schema(GraphQLDate, f'"{input_value}"' if isinstance(input_value, str) else input_value,
+                        inner_value, expected)
+
+
+@pytest.mark.parametrize("input_value,inner_value", [
+    ("00:00", time(0, 0)),
+    ("01:02", time(1, 2)),
+    ("01:02:03", time(1, 2, 3)),
+    ("01:02:03.456789", time(1, 2, 3, microsecond=456789)),
+    (1.5, time(0, 0, 1, microsecond=500000)),
+    (60.5678901, time(0, 1, 0, microsecond=567890)),
+])
+def test_graphqldate_schema(input_value, inner_value):
+    expected = inner_value.isoformat()
+    check_scalar_schema(GraphQLTime, f'"{input_value}"' if isinstance(input_value, str) else input_value,
                         inner_value, expected)

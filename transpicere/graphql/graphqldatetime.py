@@ -1,18 +1,17 @@
-from typing import Any
-from dateutil import tz
-from dateutil.parser import parse as dateuil_parse
-from dateutil.tz import tzutc
 from datetime import date, datetime, time
-from graphql.language.ast import FloatValueNode, ValueNode
-from graphql.type import GraphQLScalarType
-from graphql.pyutils import inspect
-from graphql.language.ast import (
-    IntValueNode,
-    StringValueNode,
-    ValueNode,
-)
+from math import modf, floor
+from typing import Any
+
+from dateutil import tz
+from dateutil.parser import parse as dateutil_parse
+from dateutil.tz import tzutc
+
 from graphql.error import GraphQLError
+from graphql.language.ast import (FloatValueNode, IntValueNode,
+                                  StringValueNode, ValueNode)
 from graphql.language.printer import print_ast
+from graphql.pyutils import inspect
+from graphql.type import GraphQLScalarType
 
 DEFAULT_TIMEZONE = tzutc()
 
@@ -26,7 +25,7 @@ def parse_datetime(input_value: Any) -> datetime:
         if isinstance(input_value, float) or isinstance(input_value, int):
             return datetime.fromtimestamp(float(input_value), tz=DEFAULT_TIMEZONE)
         elif isinstance(input_value, str):
-            return dateuil_parse(input_value)
+            return dateutil_parse(input_value)
         raise ValueError(
             f"Datetime cannot represent non datetime value: {inspect(input_value)}")
     except ValueError:
@@ -94,4 +93,47 @@ GraphQLDate = GraphQLScalarType(
     serialize=serialize_date,
     parse_value=parse_date,
     parse_literal=parse_date_literal,
+)
+
+
+def serialize_time(output_value: time) -> str:
+    return output_value.isoformat()
+
+
+def parse_time(input_value: Any) -> time:
+    if isinstance(input_value, int):
+        s = floor(input_value % 60)
+        m = floor(((input_value - s) / 60) % 60)
+        h = floor((input_value - s - 60*m)/(60*60))
+        return time(h, m, s)
+    elif isinstance(input_value, float):
+        sub_seconds, seconds = modf(input_value)
+        t = parse_time(int(seconds))
+        return time(t.hour, t.minute, t.second, floor(sub_seconds*1000000))
+    elif isinstance(input_value, str):
+        return time.fromisoformat(input_value)
+    else:
+        raise GraphQLError(
+            f"Date cannot represent non date value: {inspect(input_value)}")
+
+
+def parse_time_literal(value_node: ValueNode, _variables: Any = None) -> time:
+    if isinstance(value_node, IntValueNode):
+        return parse_time(int(value_node.value))
+    elif isinstance(value_node, FloatValueNode):
+        return parse_time(float(value_node.value))
+    elif isinstance(value_node, StringValueNode):
+        return parse_time(value_node.value)
+    raise GraphQLError(
+        f"Datetime cannot represent non datetime value: {print_ast(value_node)}", value_node)
+
+
+GraphQLTime = GraphQLScalarType(
+    name="Time",
+    description="The `Date` scalar type represents"
+    " non-fractional signed whole numeric values."
+    " Int can represent values between -(2^31) and 2^31 - 1.",
+    serialize=serialize_time,
+    parse_value=parse_time,
+    parse_literal=parse_time_literal,
 )
