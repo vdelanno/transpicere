@@ -20,6 +20,9 @@ jobs:
     - name: Install linux dependencies
       run: | 
         sudo apt-get install -y --no-install-recommends unixodbc-dev unixodbc libpq-dev 
+    - name: Check odbc drivers
+      run: |
+        cat /etc/odbcinst.ini
     - name: Set up Python 3.8
       uses: actions/setup-python@v2
       with:
