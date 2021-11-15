@@ -14,7 +14,7 @@ jobs:
     - name: Sleep
       uses: jakejarvis/wait-action@master
       with:
-        time: '60s'
+        time: '20s'
     - name: Check running containers
       run: docker ps
     - name: Set up Python 3.8
@@ -31,9 +31,6 @@ jobs:
         # stop the build if there are Python syntax errors or undefined names
         flake8 ./transpicere --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 ./test      --count --select=E9,F63,F7,F82 --show-source --statistics
-    - name: install missing mypy stubs
-      run: |
-        python -m mypy --install-types --non-interactive .
     - name: type checking with mypy
       run: |
         python -m mypy --config-file mypy.ini
