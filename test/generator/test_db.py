@@ -10,7 +10,7 @@ SU = shortuuid.ShortUUID(alphabet=ALPHABET)
 
 class DbTestCase(unittest.TestCase):
     def setUp(self):
-        self.connection_string = "Driver={PostgreSQL UNICODE};Uid=user;Pwd=password;Server=localhost;Port=5432;Database=postgres_transpicere;Pooling=true;Min Pool Size=0;Max Pool Size=100;Connection Lifetime=0;"
+        self.connection_string = "Driver={PostgreSQL ANSI};Uid=user;Pwd=password;Server=localhost;Port=5432;Database=postgres_transpicere;Pooling=true;Min Pool Size=0;Max Pool Size=100;Connection Lifetime=0;"
 
         self.table_name = f"test_{SU.random(length=8)}"
         print(f"using table {self.table_name}")
