@@ -1,14 +1,16 @@
 """[summary]
-    set of added types to reflect https://github.com/mkleehammer/pyodbc/wiki/Data-Types
+    scalar types to reflect https://github.com/mkleehammer/pyodbc/wiki/Data-Types
     """
 from .graphqllong import GraphQLLong
 from .graphqldatetime import GraphQLDatetime, GraphQLDate, GraphQLTime
 from .graphqldecimal import GraphQLDecimal
 from .graphqluuid import GraphQLUuid
+from graphql.type import GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean, GraphQLID
 
 __all__ = [
     "GraphQLLong",
     "GraphQLDatetime", "GraphQLDate", "GraphQLTime",
     "GraphQLDecimal",
-    "GraphQLUuid"
+    "GraphQLUuid",
+    "GraphQLInt", "GraphQLFloat", "GraphQLString", "GraphQLBoolean", "GraphQLID"
 ]

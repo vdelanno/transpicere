@@ -3,6 +3,5 @@ pytest-cov
 mypy
 autopep8
 flake8
-flask
 types-python-dateutil
-uvicorn 
+shortuuid
