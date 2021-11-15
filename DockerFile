@@ -1,0 +1,16 @@
+FROM python:3.9
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    unixodbc-dev \
+    unixodbc \
+    libpq-dev 
+WORKDIR /
+COPY requirements.txt .
+COPY requirements-dev.txt .
+RUN pip3 install --compile -r requirements.txt 
+RUN pip3 install --compile -r requirements-dev.txt
+RUN rm -rf /root/.cache
+COPY transpicere .
+COPY test .
+# TODO precompile
+
+# Build stage test - run tests

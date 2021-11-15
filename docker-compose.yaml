@@ -1,0 +1,26 @@
+services:
+  # transpicere-dev:
+  #   build: .
+  #   depends_on:
+  #     - mysql
+  #     - postgres
+  myql:
+    image: "mysql:latest"
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password    
+  postgres:
+    image: "postgres:latest"
+    restart: always
+    ports: 
+      - 5432:5432
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres_transpicere
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
