@@ -55,7 +55,7 @@ class DbConfig:
 
 class DbGenerator:
 
-    def get_node(self, config: DbConfig) -> None:
+    def get_node(self, config: DbConfig) -> Node:
         with pyodbc.connect(config.connection_string) as cnxn:
             cursor = cnxn.cursor()
             node_name = self._get_node_name(cursor, config)
