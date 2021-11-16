@@ -19,7 +19,7 @@ jobs:
       run: docker ps
     - name: Install linux dependencies
       run: | 
-        sudo apt-get install -y --no-install-recommends unixodbc unixodbc-dev libpq-dev  odbc-postgresql devscripts
+        sudo apt-get install -y --no-install-recommends unixodbc unixodbc-dev odbc-postgresql
     - name: Check odbc drivers
       run: |
         cat /etc/odbcinst.ini
