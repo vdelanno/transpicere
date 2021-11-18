@@ -22,6 +22,7 @@ services:
   web:
     build: 
       dockerfile: ./Dockerfile_webapp
+      context: .
     restart: always
     volumes:
       - ./transpicere:/code/transpicere
@@ -32,8 +33,7 @@ services:
   test:
     build: 
       dockerfile: ./Dockerfile_test
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
+      context: .
     volumes:
       - ./transpicere:/code/transpicere
       - ./test:/code/test
