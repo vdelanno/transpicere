@@ -42,4 +42,4 @@ jobs:
         python -m mypy --config-file mypy.ini
     - name: Test with pytest
       run: |
-        python -m pytest .
+        docker-compose run test

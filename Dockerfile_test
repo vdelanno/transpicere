@@ -13,18 +13,11 @@ RUN pip3 install --compile -r requirements-dev.txt
 
 ENV PATH=/root/.local:$PATH
 
-COPY transpicere ./transpicere
-COPY test ./test
+# source files are linked from docker compose
+# COPY transpicere ./transpicere
+# COPY test ./test
 COPY wait-for.sh .
-# COPY test/data /root
-
-# postgres odbc driver: \usr\lib\x86_64-linux-gnu\odbc\psqlodbcw.so
 
 RUN sqlite3 /root/transpicere.db
 RUN sqlite3 /root/transpicere.db .show
-# Build stage test - run tests
-# CMD ["/bin/sh"]
-# CMD ["ls","-al", "/root/"]
-# CMD ["sqlite3", "/root/transpicere.db", ".show"]
 CMD ["python", "-m", "pytest", "./test" ]
-# CMD ["/root/odbcconf.sh"]
