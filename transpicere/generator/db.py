@@ -7,6 +7,7 @@ from datetime import date, time, datetime
 from uuid import UUID
 from dataclasses import dataclass, field
 from transpicere.graphql import *
+from graphql import GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean, GraphQLID
 
 LOGGER = logging.Logger(__name__)
 TYPE_MAPPING = {

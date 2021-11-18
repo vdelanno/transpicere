@@ -19,8 +19,24 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres_transpicere
-  adminer:
-    image: adminer
+  web:
+    build: 
+      dockerfile: ./Dockerfile_webapp
     restart: always
+    volumes:
+      - ./transpicere:/code/transpicere
+      - ./web:/code/web
     ports:
-      - 8080:8080
+      - 5000:5000
+
+  test:
+    build: 
+      dockerfile: ./Dockerfile_test
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    volumes:
+      - ./transpicere:/code/transpicere
+      - ./test:/code/test
+    depends_on:
+      - postgres
+    command: sh -c './wait-for.sh postgres:5432 -- python -m pytest ./test'

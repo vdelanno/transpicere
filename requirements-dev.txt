@@ -5,3 +5,4 @@ autopep8
 flake8
 types-python-dateutil
 shortuuid
+graphql-server[flask]
