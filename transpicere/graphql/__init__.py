@@ -10,5 +10,5 @@ __all__ = [
     "GraphQLLong",
     "GraphQLDatetime", "GraphQLDate", "GraphQLTime",
     "GraphQLDecimal",
-    "GraphQLUuid",
+    "GraphQLUuid"
 ]
