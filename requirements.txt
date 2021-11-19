@@ -1,4 +1,3 @@
-ariadne
 graphql-core
 python-dateutil
 pyodbc

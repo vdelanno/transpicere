@@ -1,0 +1,23 @@
+FROM python:3.9
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    netcat \
+    unixodbc-dev  unixodbc  libsqliteodbc sqlite3 odbc-postgresql
+WORKDIR /code
+COPY requirements.txt .
+RUN pip3 install --compile -r requirements.txt 
+
+COPY requirements-dev.txt .
+RUN pip3 install --compile -r requirements-dev.txt
+
+# copy only the dependencies installation from the 1st stage image
+
+ENV PATH=/root/.local:$PATH
+
+# source files are linked from docker compose
+# COPY transpicere ./transpicere
+# COPY test ./test
+COPY wait-for.sh .
+
+RUN sqlite3 /root/transpicere.db
+RUN sqlite3 /root/transpicere.db .show
+CMD ["python", "-m", "pytest", "./test" ]

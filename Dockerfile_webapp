@@ -1,0 +1,23 @@
+FROM python:3.9
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    unixodbc-dev \
+    unixodbc \
+    libpq-dev \
+    odbc-postgresql \
+    devscripts
+WORKDIR /code
+COPY requirements.txt .
+RUN pip3 install --compile -r requirements.txt 
+
+COPY requirements-dev.txt .
+RUN pip3 install --compile -r requirements-dev.txt
+
+# copy only the dependencies installation from the 1st stage image
+
+ENV PATH=/root/.local:$PATH
+
+COPY transpicere ./transpicere
+COPY web ./web
+
+# Build stage test - run tests
+CMD ["python", "-m", "web.app"]

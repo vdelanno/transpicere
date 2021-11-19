@@ -1,5 +1,5 @@
 """[summary]
-    set of added types to reflect https://github.com/mkleehammer/pyodbc/wiki/Data-Types
+    scalar types to reflect https://github.com/mkleehammer/pyodbc/wiki/Data-Types
     """
 from .graphqllong import GraphQLLong
 from .graphqldatetime import GraphQLDatetime, GraphQLDate, GraphQLTime
