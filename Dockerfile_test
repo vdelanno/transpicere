@@ -20,4 +20,4 @@ COPY wait-for.sh .
 
 RUN sqlite3 /root/transpicere.db
 RUN sqlite3 /root/transpicere.db .show
-CMD ["python", "-m", "pytest", "./test" ]
+CMD ["python", "-m", "pytest", "--cov=transpicere", "./test" ]

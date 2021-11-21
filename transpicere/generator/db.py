@@ -1,7 +1,7 @@
 # mypy: allow-untyped-defs
 import pyodbc
 import logging
-from typing import Dict, List, TypeVar, Any
+from typing import Dict, List, TypeVar, Any, Callable, Iterable
 from decimal import Decimal
 from datetime import date, time, datetime
 from uuid import UUID
@@ -38,6 +38,7 @@ class Field:
 class Query:
     return_type: str
     is_list: bool
+    resolver: Callable
     params: Dict[str, Field] = field(default_factory=dict)
 
 
@@ -54,7 +55,29 @@ class DbConfig:
     table: str
 
 
-class DbGenerator:
+class DbResolver:
+    def __init__(self, config: DbConfig, is_list: bool):
+        self._config = config
+        self._is_list = is_list
+
+    def __call__(self, **kwargs):
+        (placeholders, bindings) = zip(*kwargs.keys())
+        where_clause = ' AND '.join([f"{p}=?" for p in placeholders])
+        with pyodbc.connect(self._config.connection_string) as cnxn:
+            cursor = cnxn.cursor()
+            rows = cursor.execute(
+                f"select  from {self._config.table} where {where_clause}", bindings)
+            column_names = [desc[0] for desc in cursor.description]
+            if self._is_list:
+                return [self._row_to_dict(row, column_names) for row in rows.fetchall()]
+            else:
+                return self._row_to_dict(rows.fetchone(), column_names)
+
+    def _row_to_dict(self, row: Dict[str, Any], column_names: List[str]) -> Iterable[Dict[str, Any]]:
+        yield dict(zip(row, column_names))
+
+
+class DbGenerator():
 
     def get_node(self, config: DbConfig) -> Node:
         with pyodbc.connect(config.connection_string) as cnxn:
@@ -91,7 +114,10 @@ class DbGenerator:
             query = queries.setdefault(
                 row.index_name, Query(
                     return_type=node_name,
-                    is_list=row.non_unique))
+                    is_list=row.non_unique,
+                    resolver=DbResolver(config, row.non_unique)
+                )
+            )
             query.params[row.column_name] = Field(
                 fields[row.column_name].data_type,
                 is_nullable=False)

@@ -2,14 +2,10 @@ from datetime import date, datetime, time
 from math import modf, floor
 from typing import Any
 
-from dateutil import tz
 from dateutil.parser import parse as dateutil_parse
 from dateutil.tz import tzutc
 
 from graphql.error import GraphQLError
-from graphql.language.ast import (FloatValueNode, IntValueNode,
-                                  StringValueNode, ValueNode)
-from graphql.language.printer import print_ast
 from graphql.pyutils import inspect
 from graphql.type import GraphQLScalarType
 
@@ -33,25 +29,13 @@ def parse_datetime(input_value: Any) -> datetime:
             f"Datetime cannot represent non datetime value: {inspect(input_value)}")
 
 
-def parse_datetime_literal(value_node: ValueNode, _variables: Any = None) -> datetime:
-    if isinstance(value_node, IntValueNode):
-        return parse_datetime(int(value_node.value))
-    elif isinstance(value_node, FloatValueNode):
-        return parse_datetime(float(value_node.value))
-    elif isinstance(value_node, StringValueNode):
-        return parse_datetime(value_node.value)
-    raise GraphQLError(
-        f"Datetime cannot represent non datetime value: {print_ast(value_node)}", value_node)
-
-
 GraphQLDatetime = GraphQLScalarType(
     name="Datetime",
     description="The `Datetime` scalar type represents"
     " non-fractional signed whole numeric values."
     " Int can represent values between -(2^31) and 2^31 - 1.",
     serialize=serialize_datetime,
-    parse_value=parse_datetime,
-    parse_literal=parse_datetime_literal,
+    parse_value=parse_datetime
 )
 
 
@@ -69,20 +53,11 @@ def get_date(d: datetime) -> date:
 
 def parse_date(input_value: Any) -> date:
     try:
-        d = parse_datetime(input)
+        d = parse_datetime(input_value)
         return get_date(d)
     except (GraphQLError, ValueError):
         raise GraphQLError(
             f"Date cannot represent non date value: {inspect(input_value)}")
-
-
-def parse_date_literal(value_node: ValueNode, _variables: Any = None) -> date:
-    try:
-        d = parse_datetime_literal(value_node, _variables)
-        return get_date(d)
-    except (GraphQLError, ValueError):
-        raise GraphQLError(
-            f"Date cannot represent non date value: {print_ast(value_node)}", value_node)
 
 
 GraphQLDate = GraphQLScalarType(
@@ -92,7 +67,6 @@ GraphQLDate = GraphQLScalarType(
     " Int can represent values between -(2^31) and 2^31 - 1.",
     serialize=serialize_date,
     parse_value=parse_date,
-    parse_literal=parse_date_literal,
 )
 
 
@@ -117,23 +91,10 @@ def parse_time(input_value: Any) -> time:
             f"Date cannot represent non date value: {inspect(input_value)}")
 
 
-def parse_time_literal(value_node: ValueNode, _variables: Any = None) -> time:
-    if isinstance(value_node, IntValueNode):
-        return parse_time(int(value_node.value))
-    elif isinstance(value_node, FloatValueNode):
-        return parse_time(float(value_node.value))
-    elif isinstance(value_node, StringValueNode):
-        return parse_time(value_node.value)
-    raise GraphQLError(
-        f"Datetime cannot represent non datetime value: {print_ast(value_node)}", value_node)
-
-
 GraphQLTime = GraphQLScalarType(
     name="Time",
     description="The `Date` scalar type represents"
     " non-fractional signed whole numeric values."
     " Int can represent values between -(2^31) and 2^31 - 1.",
     serialize=serialize_time,
-    parse_value=parse_time,
-    parse_literal=parse_time_literal,
-)
+    parse_value=parse_time)

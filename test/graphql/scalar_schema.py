@@ -13,7 +13,7 @@ def resolve_inner_value(inner_value, root, _info, value):
     }
 
 
-def check_scalar_schema(scalar_type, input_value, inner_value, output_value):
+def check_scalar_schema(scalar_type, input_value, inner_value, output_value, expect_errors):
     scalar_object_type = GraphQLObjectType('Scalar', {
         'value': GraphQLField(
             scalar_type,
@@ -40,6 +40,10 @@ def check_scalar_schema(scalar_type, input_value, inner_value, output_value):
     print(f"query: {query}")
     result = graphql_sync(schema, query)
     print(f"result: {result}")
-    assert result.errors is None or len(result.errors) == 0
-    assert result.data['get']['value'] == output_value
-    return result
+    if expect_errors:
+        assert result.errors is not None
+        assert len(result.errors) == 1
+    else:
+        assert result.errors is None or len(result.errors) == 0
+        assert result.data['get']['value'] == output_value
+        return result

@@ -42,4 +42,4 @@ services:
       - ./test:/code/test
     depends_on:
       - postgres
-    command: sh -c './wait-for.sh postgres:5432 -- python -m pytest ./test'
+    command: sh -c './wait-for.sh postgres:5432 -- python -m pytest --cov=transpicere --cov-report term-missing ./test'
