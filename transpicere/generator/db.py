@@ -36,8 +36,8 @@ class Field:
 
 @dataclass
 class Query:
-    unique: bool
     return_type: str
+    is_list: bool
     params: Dict[str, Field] = field(default_factory=dict)
 
 
@@ -89,9 +89,12 @@ class DbGenerator:
         queries: dict[str, Query] = dict()
         for row in indices:
             query = queries.setdefault(
-                row.index_name, Query(return_type=node_name, unique=not row.non_unique))
+                row.index_name, Query(
+                    return_type=node_name,
+                    is_list=row.non_unique))
             query.params[row.column_name] = Field(
-                fields[row.column_name].data_type, is_nullable=False)
+                fields[row.column_name].data_type,
+                is_nullable=False)
 
         def query_name(index_name: str, query: Query) -> str:
             index = index_name

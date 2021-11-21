@@ -19,7 +19,7 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres_transpicere
-  web:
+  webapp:
     build: 
       dockerfile: ./Dockerfile_webapp
       context: .
@@ -29,6 +29,9 @@ services:
       - ./web:/code/web
     ports:
       - 5000:5000
+    depends_on:
+      - postgres
+    command: sh -c './wait-for.sh postgres:5432 -- python -m web.app'
 
   test:
     build: 

@@ -1,4 +1,7 @@
+from typing import List, Any
 import unittest
+import pytest
+from parameterized import parameterized
 import pyodbc
 import string
 import shortuuid
@@ -6,6 +9,24 @@ from transpicere.generator.db import DbConfig, DbGenerator, Node, Field, Query
 
 ALPHABET = string.ascii_lowercase + string.digits
 SU = shortuuid.ShortUUID(alphabet=ALPHABET)
+
+FIELD_TYPES = {
+    'boolean_value':    'Boolean',
+    'integer_value':    'Int',
+    'bigint_value':     'Long',
+    'text_value':       'String',
+    'varchar_value':    'String',
+    'float_value':      'Float',
+    'timestamp_value':  'Datetime',
+    'date_value':       'Date',
+    'time_value':       'Time',
+    'decimal_value':    'Decimal',
+    'uuid_value':       'UUID',
+}
+
+
+def make_pairs(l: List[Any]):
+    return [(l[i], l[i+1]) for i in range(0, len(l)-1)]
 
 
 class DbTestCase(unittest.TestCase):
@@ -17,74 +38,105 @@ class DbTestCase(unittest.TestCase):
 
         self.table_name = f"test_{SU.random(length=8)}"
         print(f"using table {self.table_name}")
-        print("smiley")
         with pyodbc.connect(self.connection_string) as cnxn:
             cursor = cnxn.cursor()
             cursor.execute(f'''
                 CREATE TABLE {self.table_name} (
-                        bool_value BOOLEAN PRIMARY KEY,
-                        int_value INTEGER,
+                        boolean_value BOOLEAN,
+                        integer_value INTEGER,
                         bigint_value BIGINT,
                         text_value TEXT,
                         varchar_value VARCHAR[5],
                         float_value FLOAT,
-                        datetime_value TIMESTAMP,
+                        timestamp_value TIMESTAMP,
                         date_value DATE,
                         time_value TIME,
                         decimal_value DECIMAL,
                         uuid_value UUID
                 );
                 ''')
-            cursor.execute(f'''
-                CREATE INDEX index_name
-                ON {self.table_name} (bigint_value, time_value);
-                ''')
-
             cursor.commit()
 
     def tearDown(self):
         with pyodbc.connect(self.connection_string) as cnxn:
             cursor = cnxn.cursor()
-            cursor.execute(f'''
-            DROP TABLE {self.table_name}
-            ''')
+            cursor.execute(f'DROP TABLE {self.table_name}')
             cursor.commit()
 
-    def test_db(self):
+    def create_index(self, name, unique, indices: List[str]):
+        with pyodbc.connect(self.connection_string) as cnxn:
+            cursor = cnxn.cursor()
+            cursor.execute(f'''
+                CREATE {'UNIQUE' if unique else ''} INDEX {name}
+                ON {self.table_name} ({', '.join(indices)});
+                ''')
+
+            cursor.commit()
+
+    def test_column(self):
         cfg = DbConfig(connection_string=self.connection_string,
                        table=self.table_name)
         gen = DbGenerator()
         node = gen.get_node(config=cfg)
         print(node)
-        assert node == Node(
-            name=f"postgres_transpicere_{self.table_name}",
-            fields={
-                'bool_value': Field(data_type='Boolean', is_nullable=True, is_list=False),
-                'int_value': Field(data_type='Int', is_nullable=True, is_list=False),
-                'bigint_value': Field(data_type='Long', is_nullable=True, is_list=False),
-                'text_value': Field(data_type='String', is_nullable=True, is_list=False),
-                'varchar_value': Field(data_type='String', is_nullable=True, is_list=False),
-                'float_value': Field(data_type='Float', is_nullable=True, is_list=False),
-                'datetime_value': Field(data_type='Datetime', is_nullable=True, is_list=False),
-                'date_value': Field(data_type='Date', is_nullable=True, is_list=False),
-                'time_value': Field(data_type='Time', is_nullable=True, is_list=False),
-                'decimal_value': Field(data_type='Decimal', is_nullable=True, is_list=False),
-                'uuid_value': Field(data_type='UUID', is_nullable=True, is_list=False)
-            },
-            queries={
-                f'{node.name}_bool_value': Query(
-                    unique=True,
-                    return_type=node.name,
-                    params={
-                        'bool_value': Field(data_type='Boolean', is_nullable=False, is_list=False)
-                    }
-                ),
-                f'{node.name}_index_name': Query(
-                    unique=False,
-                    return_type=node.name, params={
-                        'bigint_value': Field(data_type='Long', is_nullable=False, is_list=False),
-                        'time_value': Field(data_type='Time', is_nullable=False, is_list=False)
-                    }
-                )
-            }
-        )
+        assert node.name == f"postgres_transpicere_{self.table_name}"
+        assert node.fields == {
+            field_name: Field(data_type=field_type,
+                              is_nullable=True, is_list=False)
+            for field_name, field_type in FIELD_TYPES.items()
+        }
+
+    @parameterized.expand([
+        (field_name1, field_type1, field_name2, field_type2, unique)
+        for (field_name1, field_type1), (field_name2, field_type2) in make_pairs(list(FIELD_TYPES.items()))
+        for unique in [True, False]
+    ])
+    def test_composed_index(self, field_name1, field_type1, field_name2, field_type2, unique):
+        index_name = f'{field_name1}_{field_name2}'
+        self.create_index(index_name, unique, [field_name1, field_name2])
+
+        cfg = DbConfig(connection_string=self.connection_string,
+                       table=self.table_name)
+        gen = DbGenerator()
+        node = gen.get_node(config=cfg)
+        print(node.queries)
+        assert node.queries == {
+            f'{node.name}_{index_name}': Query(
+                is_list=not unique,
+                return_type=node.name,
+                params={
+                    field_name1: Field(data_type=field_type1,
+                                       is_nullable=False,
+                                       is_list=False),
+                    field_name2: Field(data_type=field_type2,
+                                       is_nullable=False,
+                                       is_list=False)
+                }
+            )
+        }
+
+    @parameterized.expand([
+        (field_name, field_type, unique)
+        for field_name, field_type in FIELD_TYPES.items()
+        for unique in [True, False]
+    ])
+    def test_simple_index(self, field_name, field_type, unique):
+        self.create_index('unused_value', unique, [field_name])
+
+        cfg = DbConfig(connection_string=self.connection_string,
+                       table=self.table_name)
+        gen = DbGenerator()
+        node = gen.get_node(config=cfg)
+        print(node.queries)
+        print((field_name, field_type, unique))
+        assert node.queries == {
+            f'{node.name}_{field_name}': Query(
+                is_list=not unique,
+                return_type=node.name,
+                params={
+                    field_name: Field(data_type=field_type,
+                                      is_nullable=False,
+                                      is_list=False)
+                }
+            )
+        }
