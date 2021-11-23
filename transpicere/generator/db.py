@@ -61,12 +61,13 @@ class DbResolver:
         self._is_list = is_list
 
     def __call__(self, **kwargs):
-        (placeholders, bindings) = zip(*kwargs.keys())
+        (placeholders, bindings) = zip(*kwargs.items())
         where_clause = ' AND '.join([f"{p}=?" for p in placeholders])
+        statement = f"select * from {self._config.table} where {where_clause}"
+        print(statement)
         with pyodbc.connect(self._config.connection_string) as cnxn:
             cursor = cnxn.cursor()
-            rows = cursor.execute(
-                f"select  from {self._config.table} where {where_clause}", bindings)
+            rows = cursor.execute(statement, bindings)
             column_names = [desc[0] for desc in cursor.description]
             if self._is_list:
                 return [self._row_to_dict(row, column_names) for row in rows.fetchall()]
@@ -74,7 +75,7 @@ class DbResolver:
                 return self._row_to_dict(rows.fetchone(), column_names)
 
     def _row_to_dict(self, row: Dict[str, Any], column_names: List[str]) -> Iterable[Dict[str, Any]]:
-        yield dict(zip(row, column_names))
+        yield dict(zip(column_names, row))
 
 
 class DbGenerator():
@@ -101,7 +102,7 @@ class DbGenerator():
     def _get_fields(self, cursor: pyodbc.Cursor, config: DbConfig) -> Dict[str, Field]:
         rows = cursor.columns(table=config.table)
         fields = {
-            row.column_name: Field(TYPE_MAPPING[row.type_name]) for row in rows
+            row.column_name: Field(TYPE_MAPPING[row.type_name.lower()]) for row in rows
         }
         if len(fields) == 0:
             raise ValueError(f"table {config.table} has no column")

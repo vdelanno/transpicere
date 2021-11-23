@@ -2,12 +2,15 @@ from typing import List, Any, Dict
 import unittest
 import pytest
 from parameterized import parameterized
+import sqlite3
 import pyodbc
 import string
 import shortuuid
+import platform
 from transpicere.generator.db import DbConfig, DbGenerator, Node, Field, Query
 
-ALPHABET = string.ascii_lowercase + string.digits
+# ALPHABET = string.ascii_lowercase + string.digits
+ALPHABET = string.ascii_lowercase
 SU = shortuuid.ShortUUID(alphabet=ALPHABET)
 
 FIELD_TYPES = {
@@ -29,7 +32,7 @@ def make_pairs(l: List[Any]):
     return [l[i:i+2] for i in range(0, len(l)-1)]
 
 
-class DbTestCase(unittest.TestCase):
+class TestDbConfig(unittest.TestCase):
     def setUp(self):
         # self.connection_string = "DRIVER={SQLite3 ODBC Driver};SERVER=localhost;DATABASE=transpicere;Trusted_connection=yes"
         self.db_name = "postgres_transpicere"
@@ -74,8 +77,9 @@ class DbTestCase(unittest.TestCase):
             cursor.commit()
 
     def insert_sample_data(self, rows: List[Dict[str, Any]]):
-        with pyodbc.connect(self.connection_string) as cnxn:
+        with pyodbc.connect(self.connection_string, autocommit=True) as cnxn:
             cursor = cnxn.cursor()
+            cursor.executemany(f"insert into {self.table_name}")
 
     def test_column(self):
         cfg = DbConfig(connection_string=self.connection_string,
@@ -143,3 +147,46 @@ class DbTestCase(unittest.TestCase):
                               is_nullable=False,
                               is_list=False)
         }
+
+
+class TestDbResolver(unittest.TestCase):
+    def setUp(self):
+        self.db_name = f"test_{SU.random(length=8)}.db"
+        self.table_name = f"test_{SU.random(length=8)}"
+        driver = "SQLite3"
+        if platform.system() == "Windows":
+            driver = "{SQLite3 ODBC Driver}"
+
+        self.connection_string = f"DRIVER={driver};DATABASE=file:{self.db_name};"
+        print(f"using db {self.db_name}")
+        print(f"using connection {self.connection_string}")
+        print(f"using table {self.table_name}")
+        with sqlite3.connect(self.db_name) as con:
+            con.commit()
+
+    def test_query(self):
+        with sqlite3.connect(self.db_name) as con:
+            cur = con.cursor()
+            cur.execute(f"DROP TABLE IF EXISTS {self.table_name}")
+            cur.execute(
+                f"CREATE TABLE {self.table_name} (data TEXT NOT NULL PRIMARY KEY)")
+            cur.executemany(
+                f"INSERT INTO {self.table_name} VALUES (?)", [
+                    ("value1",),
+                    ("value2",),
+                    ("value3",)
+                ])
+            con.commit()
+            # cur.execute("CREATE UNIQUE INDEX col1 ON test_table (col1)")
+            print("db initialized")
+        cfg = DbConfig(connection_string=self.connection_string,
+                       table=self.table_name)
+        gen = DbGenerator()
+        node = gen.get_node(config=cfg)
+        assert len(node.queries) == 1
+        query = node.queries[next(iter(node.queries.keys()))]
+        print(query)
+        result = query.resolver(data="value2")
+        assert list(result) == [{
+            'data': 'value2'
+        }]
