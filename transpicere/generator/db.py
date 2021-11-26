@@ -1,4 +1,5 @@
 # mypy: allow-untyped-defs
+from graphql.type.definition import GraphQLField, GraphQLScalarType
 import pyodbc
 import logging
 from typing import Dict, List, TypeVar, Any, Callable, Iterable
@@ -7,29 +8,40 @@ from datetime import date, time, datetime
 from uuid import UUID
 from dataclasses import dataclass, field
 from transpicere.graphql import *
-from graphql import GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean, GraphQLID
+from graphql import GraphQLInt, GraphQLFloat, GraphQLString, GraphQLID
 
 LOGGER = logging.Logger(__name__)
-TYPE_MAPPING = {
-    'bool': GraphQLBoolean.name,
-    'int2': GraphQLInt.name,
-    'int4': GraphQLInt.name,
-    'int8': GraphQLLong.name,
-    'text': GraphQLString.name,
-    '_varchar': GraphQLString.name,
-    'float4': GraphQLFloat.name,
-    'float8': GraphQLFloat.name,
-    'numeric': GraphQLDecimal.name,
-    'date': GraphQLDate.name,
-    'time': GraphQLTime.name,
-    'timestamp': GraphQLDatetime.name,
-    'uuid': GraphQLUuid.name
-}
+
+
+def get_field_type(db_type_str: str) -> GraphQLScalarType:
+    db_type = db_type_str.lower()
+    if db_type.startswith('bool'):
+        return GraphQLBool
+    if db_type.startswith('int') and db_type not in ('int8', 'int16'):
+        return GraphQLInt
+    if db_type.startswith('int') or db_type.startswith('bigint'):
+        return GraphQLLong
+    if db_type.startswith('float'):
+        return GraphQLFloat
+    if db_type == 'text' or db_type.startswith('_varchar') or db_type.startswith('varchar'):
+        return GraphQLString
+    if db_type == 'numeric' or db_type == 'decimal':
+        return GraphQLDecimal
+    if db_type == 'date':
+        return GraphQLDate
+    if db_type == 'time':
+        return GraphQLTime
+    if db_type == 'timestamp' or db_type == 'datetime':
+        return GraphQLDatetime
+    if db_type == 'uuid':
+        return GraphQLUuid
+    raise ValueError(
+        f"db type {db_type_str} not recognize. Please provide handler")
 
 
 @dataclass
 class Field:
-    data_type: str
+    data_type: GraphQLScalarType
     is_nullable: bool = field(default=True)
     is_list: bool = field(default=False)
 
@@ -56,9 +68,11 @@ class DbConfig:
 
 
 class DbResolver:
-    def __init__(self, config: DbConfig, is_list: bool):
+    def __init__(self, config: DbConfig, is_list: bool, fields: Dict[str, Field]):
         self._config = config
         self._is_list = is_list
+        self._converters = {
+            name: field.data_type for name, field in fields.items()}
 
     def __call__(self, **kwargs):
         (placeholders, bindings) = zip(*kwargs.items())
@@ -75,7 +89,8 @@ class DbResolver:
                 return self._row_to_dict(rows.fetchone(), column_names)
 
     def _row_to_dict(self, row: Dict[str, Any], column_names: List[str]) -> Iterable[Dict[str, Any]]:
-        yield dict(zip(column_names, row))
+        data = dict(zip(column_names, row))
+        yield {name: self._converters[name].parse_value(value) for name, value in data.items()}
 
 
 class DbGenerator():
@@ -102,7 +117,7 @@ class DbGenerator():
     def _get_fields(self, cursor: pyodbc.Cursor, config: DbConfig) -> Dict[str, Field]:
         rows = cursor.columns(table=config.table)
         fields = {
-            row.column_name: Field(TYPE_MAPPING[row.type_name.lower()]) for row in rows
+            row.column_name: Field(get_field_type(row.type_name)) for row in rows
         }
         if len(fields) == 0:
             raise ValueError(f"table {config.table} has no column")
@@ -116,7 +131,7 @@ class DbGenerator():
                 row.index_name, Query(
                     return_type=node_name,
                     is_list=row.non_unique,
-                    resolver=DbResolver(config, row.non_unique)
+                    resolver=DbResolver(config, row.non_unique, fields)
                 )
             )
             query.params[row.column_name] = Field(

@@ -18,7 +18,11 @@ def serialize_datetime(output_value: datetime) -> str:
 
 def parse_datetime(input_value: Any) -> datetime:
     try:
-        if isinstance(input_value, float) or isinstance(input_value, int):
+        if isinstance(input_value, datetime):
+            return input_value
+        elif isinstance(input_value, date):
+            return datetime(input_value.year, input_value.month, input_value.day)
+        elif isinstance(input_value, float) or isinstance(input_value, int):
             return datetime.fromtimestamp(float(input_value), tz=DEFAULT_TIMEZONE)
         elif isinstance(input_value, str):
             return dateutil_parse(input_value)
@@ -52,6 +56,11 @@ def get_date(d: datetime) -> date:
 
 
 def parse_date(input_value: Any) -> date:
+    if isinstance(input_value, datetime):
+        return input_value.date()
+    elif isinstance(input_value, date):
+        return input_value
+
     try:
         d = parse_datetime(input_value)
         return get_date(d)
@@ -75,7 +84,9 @@ def serialize_time(output_value: time) -> str:
 
 
 def parse_time(input_value: Any) -> time:
-    if isinstance(input_value, int):
+    if isinstance(input_value, time):
+        return input_value
+    elif isinstance(input_value, int):
         s = floor(input_value % 60)
         m = floor(((input_value - s) / 60) % 60)
         h = floor((input_value - s - 60*m)/(60*60))

@@ -7,24 +7,31 @@ import pyodbc
 import string
 import shortuuid
 import platform
+from uuid import uuid4
+from datetime import datetime, timezone, timedelta, date, time
+from decimal import Decimal
 from transpicere.generator.db import DbConfig, DbGenerator, Node, Field, Query
+from transpicere.graphql import *
+from graphql import GraphQLInt, GraphQLFloat, GraphQLString, GraphQLID
+
+from transpicere.graphql import graphqldecimal
 
 # ALPHABET = string.ascii_lowercase + string.digits
 ALPHABET = string.ascii_lowercase
 SU = shortuuid.ShortUUID(alphabet=ALPHABET)
 
 FIELD_TYPES = {
-    'boolean_value':    'Boolean',
-    'integer_value':    'Int',
-    'bigint_value':     'Long',
-    'text_value':       'String',
-    'varchar_value':    'String',
-    'float_value':      'Float',
-    'timestamp_value':  'Datetime',
-    'date_value':       'Date',
-    'time_value':       'Time',
-    'decimal_value':    'Decimal',
-    'uuid_value':       'UUID',
+    'boolean_value':    GraphQLBool,
+    'integer_value':    GraphQLInt,
+    'bigint_value':     GraphQLLong,
+    'text_value':       GraphQLString,
+    'varchar_value':    GraphQLString,
+    'float_value':      GraphQLFloat,
+    'timestamp_value':  GraphQLDatetime,
+    'date_value':       GraphQLDate,
+    'time_value':       GraphQLTime,
+    'decimal_value':    GraphQLDecimal,
+    'uuid_value':       GraphQLUuid,
 }
 
 
@@ -151,32 +158,48 @@ class TestDbConfig(unittest.TestCase):
 
 class TestDbResolver(unittest.TestCase):
     def setUp(self):
-        self.db_name = f"test_{SU.random(length=8)}.db"
+        # self.db_name = f"test_{SU.random(length=8)}.db"
+        # self.table_name = f"test_{SU.random(length=8)}"
+        # driver = "SQLite3"
+        # if platform.system() == "Windows":
+        #     driver = "{SQLite3 ODBC Driver}"
+
+        # self.connection_string = f"DRIVER={driver};DATABASE=file:{self.db_name};"
+        # print(f"using db {self.db_name}")
+        # print(f"using connection {self.connection_string}")
+        # print(f"using table {self.table_name}")
+        # with sqlite3.connect(self.db_name) as con:
+        #     con.commit()
+        self.db_name = "postgres_transpicere"
         self.table_name = f"test_{SU.random(length=8)}"
-        driver = "SQLite3"
-        if platform.system() == "Windows":
-            driver = "{SQLite3 ODBC Driver}"
-
-        self.connection_string = f"DRIVER={driver};DATABASE=file:{self.db_name};"
-        print(f"using db {self.db_name}")
-        print(f"using connection {self.connection_string}")
         print(f"using table {self.table_name}")
-        with sqlite3.connect(self.db_name) as con:
-            con.commit()
 
-    def test_query(self):
-        with sqlite3.connect(self.db_name) as con:
-            cur = con.cursor()
-            cur.execute(f"DROP TABLE IF EXISTS {self.table_name}")
-            cur.execute(
-                f"CREATE TABLE {self.table_name} (data TEXT NOT NULL PRIMARY KEY)")
-            cur.executemany(
-                f"INSERT INTO {self.table_name} VALUES (?)", [
-                    ("value1",),
-                    ("value2",),
-                    ("value3",)
-                ])
-            con.commit()
+        self.connection_string = "Driver={PostgreSQL UNICODE};Uid=user;Pwd=password;Server=postgres;Port=5432;Database=postgres_transpicere;Pooling=true;Min Pool Size=0;Max Pool Size=100;Connection Lifetime=0;"
+
+    @ parameterized.expand([
+        ('BOOLEAN', [True, False]),
+        ('INTEGER', [1, 2, 3]),
+        ('BIGINT', [1, 2, 3]),
+        ('TEXT', ["value1", "value2", "value3"]),
+        ('VARCHAR(10)', ["value1", "value2", "value3"]),
+        ('FLOAT', [1.5, 3.2, 5]),
+        ('TIMESTAMP', [datetime(2021, 12, 1, 12, 12, 12), datetime(
+            2011, 1, 1, 1, 1, 1), datetime(2011, 1, 5, 1, 5, 5)]),
+        ('DATE', [date(2021, 10, 5), date(2020, 10, 5), date(2021, 3, 4)]),
+        ('TIME', [time(12, 5), time(5, 10, 5), time(10, 3, 4)]),
+        ('DECIMAL', [Decimal(2.5), Decimal(3.4), Decimal(100.0987)]),
+        ('UUID', [uuid4(), uuid4(), uuid4()]),
+    ])
+    def test_query(self, db_field_type, values):
+        with pyodbc.connect(self.connection_string, autocommit=False) as cnxn:
+            cursor = cnxn.cursor()
+            cursor.execute(f"DROP TABLE IF EXISTS {self.table_name}")
+            cursor.execute(
+                f"CREATE TABLE {self.table_name} (data {db_field_type} NOT NULL PRIMARY KEY)")
+            for v in values:
+                cursor.execute(
+                    f"INSERT INTO {self.table_name} VALUES (?)", v)
+            cursor.commit()
             # cur.execute("CREATE UNIQUE INDEX col1 ON test_table (col1)")
             print("db initialized")
         cfg = DbConfig(connection_string=self.connection_string,
@@ -186,7 +209,8 @@ class TestDbResolver(unittest.TestCase):
         assert len(node.queries) == 1
         query = node.queries[next(iter(node.queries.keys()))]
         print(query)
-        result = query.resolver(data="value2")
+        expected = values[0]
+        result = query.resolver(data=expected)
         assert list(result) == [{
-            'data': 'value2'
+            'data': expected
         }]
