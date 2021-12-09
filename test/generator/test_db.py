@@ -22,17 +22,17 @@ ALPHABET = string.ascii_lowercase
 SU = shortuuid.ShortUUID(alphabet=ALPHABET)
 
 FIELD_TYPES = {
-    'boolean_value':    BaseType.Bool.value,
-    'integer_value':    BaseType.Long.value,
-    'bigint_value':     BaseType.Long.value,
-    'text_value':       BaseType.String.value,
-    'varchar_value':    BaseType.String.value,
-    'float_value':      BaseType.Float.value,
-    'timestamp_value':  BaseType.Datetime.value,
-    'date_value':       BaseType.Date.value,
-    'time_value':       BaseType.Time.value,
-    'decimal_value':    BaseType.Decimal.value,
-    'uuid_value':       BaseType.Uuid.value,
+    'boolean_value':    GraphQLBool.name,
+    'integer_value':    GraphQLLong.name,
+    'bigint_value':     GraphQLLong.name,
+    'text_value':       GraphQLString.name,
+    'varchar_value':    GraphQLString.name,
+    'float_value':      GraphQLFloat.name,
+    'timestamp_value':  GraphQLDatetime.name,
+    'date_value':       GraphQLDate.name,
+    'time_value':       GraphQLTime.name,
+    'decimal_value':    GraphQLDecimal.name,
+    'uuid_value':       GraphQLUuid.name,
 }
 
 
