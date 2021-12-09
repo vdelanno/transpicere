@@ -2,67 +2,53 @@
 from graphql.type.definition import GraphQLField, GraphQLScalarType
 import pyodbc
 import logging
-from typing import Dict, List, TypeVar, Any, Callable, Iterable
+from typing import Dict, List, TypeVar, Any, Callable, Iterator, Generator
 from decimal import Decimal
 from datetime import date, time, datetime
 from uuid import UUID
 from dataclasses import dataclass, field
 from transpicere.graphql import *
 from graphql import GraphQLInt, GraphQLFloat, GraphQLString, GraphQLID
+from transpicere.generator.node import Node, Field, Query
+from transpicere.generator.configuration import ConfigImpl
+from transpicere.generator.base_types import BaseType
 
 LOGGER = logging.Logger(__name__)
 
 
-def get_field_type(db_type_str: str) -> GraphQLScalarType:
+def get_field_type(db_type_str: str) -> str:
     db_type = db_type_str.lower()
     if db_type.startswith('bool'):
-        return GraphQLBool
+        return GraphQLBool.name
     if db_type.startswith('int') and db_type not in ('int8', 'int16'):
-        return GraphQLInt
+        return GraphQLLong.name
     if db_type.startswith('int') or db_type.startswith('bigint'):
-        return GraphQLLong
+        return GraphQLLong.name
     if db_type.startswith('float'):
-        return GraphQLFloat
+        return GraphQLFloat.name
     if db_type == 'text' or db_type.startswith('_varchar') or db_type.startswith('varchar'):
-        return GraphQLString
+        return GraphQLString.name
     if db_type == 'numeric' or db_type == 'decimal':
-        return GraphQLDecimal
+        return GraphQLDecimal.name
     if db_type == 'date':
-        return GraphQLDate
+        return GraphQLDate.name
     if db_type == 'time':
-        return GraphQLTime
+        return GraphQLTime.name
     if db_type == 'timestamp' or db_type == 'datetime':
-        return GraphQLDatetime
+        return GraphQLDatetime.name
     if db_type == 'uuid':
-        return GraphQLUuid
+        return GraphQLUuid.name
     raise ValueError(
         f"db type {db_type_str} not recognize. Please provide handler")
 
 
-@dataclass
-class Field:
-    data_type: GraphQLScalarType
-    is_nullable: bool = field(default=True)
-    is_list: bool = field(default=False)
-
-
-@dataclass
-class Query:
-    return_type: str
-    is_list: bool
-    resolver: Callable
-    params: Dict[str, Field] = field(default_factory=dict)
-
-
-@dataclass
-class Node:
-    name: str
-    fields: Dict[str, Field]
-    queries: Dict[str, Query]
+DATA_CONVERTERS = {
+    t.name: t.parse_value for t in [GraphQLBool, GraphQLLong, GraphQLFloat, GraphQLString, GraphQLDecimal, GraphQLDate, GraphQLTime, GraphQLDatetime, GraphQLUuid]
+}
 
 
 @ dataclass
-class DbConfig:
+class DbConfig(ConfigImpl):
     connection_string: str
     table: str
 
@@ -72,29 +58,31 @@ class DbResolver:
         self._config = config
         self._is_list = is_list
         self._converters = {
-            name: field.data_type for name, field in fields.items()}
+            name: DATA_CONVERTERS[field.data_type] for name, field in fields.items()}
 
-    def __call__(self, **kwargs):
+    def __call__(self, **kwargs: Dict[str, Any]) -> List[Dict[str, Any]]:
         (placeholders, bindings) = zip(*kwargs.items())
         where_clause = ' AND '.join([f"{p}=?" for p in placeholders])
         statement = f"select * from {self._config.table} where {where_clause}"
-        print(statement)
         with pyodbc.connect(self._config.connection_string) as cnxn:
             cursor = cnxn.cursor()
             rows = cursor.execute(statement, bindings)
             column_names = [desc[0] for desc in cursor.description]
-            if self._is_list:
-                return [self._row_to_dict(row, column_names) for row in rows.fetchall()]
-            else:
-                return self._row_to_dict(rows.fetchone(), column_names)
+            return [self._row_to_dict(row, column_names) for row in rows]
+            # row = next(rows, None)
+            # if self._is_list:
+            #     print(row)
+            #     while row:
+            #         yield self._row_to_dict(row, column_names)
+            #         row = next(row, None)
+            # else:
 
-    def _row_to_dict(self, row: Dict[str, Any], column_names: List[str]) -> Iterable[Dict[str, Any]]:
+    def _row_to_dict(self, row: List[Any], column_names: List[str]) -> Dict[str, Any]:
         data = dict(zip(column_names, row))
-        yield {name: self._converters[name].parse_value(value) for name, value in data.items()}
+        return {name: self._converters[name](value) for name, value in data.items()}
 
 
 class DbGenerator():
-
     def get_node(self, config: DbConfig) -> Node:
         with pyodbc.connect(config.connection_string) as cnxn:
             cursor = cnxn.cursor()
@@ -143,4 +131,5 @@ class DbGenerator():
             if len(query.params) == 1:
                 index = next(iter(query.params))
             return f"{node_name}_{index}"
+
         return {query_name(k, v): v for k, v in queries.items()}

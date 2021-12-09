@@ -11,6 +11,7 @@ from uuid import uuid4
 from datetime import datetime, timezone, timedelta, date, time
 from decimal import Decimal
 from transpicere.generator.db import DbConfig, DbGenerator, Node, Field, Query
+from transpicere.generator.base_types import BaseType
 from transpicere.graphql import *
 from graphql import GraphQLInt, GraphQLFloat, GraphQLString, GraphQLID
 
@@ -21,17 +22,17 @@ ALPHABET = string.ascii_lowercase
 SU = shortuuid.ShortUUID(alphabet=ALPHABET)
 
 FIELD_TYPES = {
-    'boolean_value':    GraphQLBool,
-    'integer_value':    GraphQLInt,
-    'bigint_value':     GraphQLLong,
-    'text_value':       GraphQLString,
-    'varchar_value':    GraphQLString,
-    'float_value':      GraphQLFloat,
-    'timestamp_value':  GraphQLDatetime,
-    'date_value':       GraphQLDate,
-    'time_value':       GraphQLTime,
-    'decimal_value':    GraphQLDecimal,
-    'uuid_value':       GraphQLUuid,
+    'boolean_value':    BaseType.Bool.value,
+    'integer_value':    BaseType.Long.value,
+    'bigint_value':     BaseType.Long.value,
+    'text_value':       BaseType.String.value,
+    'varchar_value':    BaseType.String.value,
+    'float_value':      BaseType.Float.value,
+    'timestamp_value':  BaseType.Datetime.value,
+    'date_value':       BaseType.Date.value,
+    'time_value':       BaseType.Time.value,
+    'decimal_value':    BaseType.Decimal.value,
+    'uuid_value':       BaseType.Uuid.value,
 }
 
 
@@ -200,8 +201,15 @@ class TestDbResolver(unittest.TestCase):
                 cursor.execute(
                     f"INSERT INTO {self.table_name} VALUES (?)", v)
             cursor.commit()
-            # cur.execute("CREATE UNIQUE INDEX col1 ON test_table (col1)")
-            print("db initialized")
+
+        with pyodbc.connect(self.connection_string, autocommit=True) as cnxn:
+            cursor = cnxn.cursor()
+            rows = cursor.execute(
+                f"SELECT COUNT(*) as c FROM {self.table_name}")
+            nb_rows = next(rows)[0]
+            assert nb_rows == len(values)
+            print(f"db {self.table_name} initialized with {nb_rows} rows")
+
         cfg = DbConfig(connection_string=self.connection_string,
                        table=self.table_name)
         gen = DbGenerator()
