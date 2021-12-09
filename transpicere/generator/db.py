@@ -8,7 +8,6 @@ from datetime import date, time, datetime
 from uuid import UUID
 from dataclasses import dataclass, field
 from transpicere.graphql import *
-from graphql import GraphQLInt, GraphQLFloat, GraphQLString, GraphQLID
 from transpicere.generator.node import Node, Field, Query
 from transpicere.generator.configuration import ConfigImpl
 from transpicere.generator.base_types import BaseType
@@ -25,7 +24,7 @@ def get_field_type(db_type_str: str) -> str:
     if db_type.startswith('int') or db_type.startswith('bigint'):
         return GraphQLLong.name
     if db_type.startswith('float'):
-        return GraphQLFloat.name
+        return GraphQLDouble.name
     if db_type == 'text' or db_type.startswith('_varchar') or db_type.startswith('varchar'):
         return GraphQLString.name
     if db_type == 'numeric' or db_type == 'decimal':
@@ -43,7 +42,7 @@ def get_field_type(db_type_str: str) -> str:
 
 
 DATA_CONVERTERS = {
-    t.name: t.parse_value for t in [GraphQLBool, GraphQLLong, GraphQLFloat, GraphQLString, GraphQLDecimal, GraphQLDate, GraphQLTime, GraphQLDatetime, GraphQLUuid]
+    t.name: t.parse_value for t in [GraphQLBool, GraphQLLong, GraphQLDouble, GraphQLString, GraphQLDecimal, GraphQLDate, GraphQLTime, GraphQLDatetime, GraphQLUuid]
 }
 
 

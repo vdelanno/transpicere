@@ -6,11 +6,15 @@ from .graphqldatetime import GraphQLDatetime, GraphQLDate, GraphQLTime
 from .graphqldecimal import GraphQLDecimal
 from .graphqluuid import GraphQLUuid
 from .graphqlbool import GraphQLBool
+from .graphqldouble import GraphQLDouble
+from graphql.type import GraphQLString
 
 __all__ = [
     "GraphQLLong",
     "GraphQLDatetime", "GraphQLDate", "GraphQLTime",
     "GraphQLDecimal",
     "GraphQLUuid",
-    "GraphQLBool"
+    "GraphQLBool",
+    "GraphQLDouble",
+    "GraphQLString"
 ]

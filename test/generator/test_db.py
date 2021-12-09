@@ -13,7 +13,6 @@ from decimal import Decimal
 from transpicere.generator.db import DbConfig, DbGenerator, Node, Field, Query
 from transpicere.generator.base_types import BaseType
 from transpicere.graphql import *
-from graphql import GraphQLInt, GraphQLFloat, GraphQLString, GraphQLID
 
 from transpicere.graphql import graphqldecimal
 
@@ -27,7 +26,7 @@ FIELD_TYPES = {
     'bigint_value':     GraphQLLong.name,
     'text_value':       GraphQLString.name,
     'varchar_value':    GraphQLString.name,
-    'float_value':      GraphQLFloat.name,
+    'float_value':      GraphQLDouble.name,
     'timestamp_value':  GraphQLDatetime.name,
     'date_value':       GraphQLDate.name,
     'time_value':       GraphQLTime.name,

@@ -4,13 +4,6 @@ from scalar_schema import check_scalar_schema
 import sys
 
 
-# @pytest.mark.parametrize("test_input", [
-# ])
-# def test_graphqllong_parse_error(test_input):
-#     with pytest.raises(GraphQLError):
-#         parse(test_input)
-
-
 @pytest.mark.parametrize("input_value, inner_value, expect_error", [
     (0, 0, False),
     (-10, -10, False),

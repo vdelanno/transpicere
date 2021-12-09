@@ -6,7 +6,7 @@ def resolve_inner_value(inner_value, root, _info, value):
     print(f"inner_value {inner_value} {type(inner_value)}")
     print(f"value {value} {type(value)}")
     assert type(inner_value) == type(
-        value), f"value {value}({type(value)}) is not of expected type {type(inner_value)} is not of type"
+        value), f"value {value}({type(value)}) is not of expected type {type(inner_value)}"
     assert inner_value == value, f"value {value}({type(value)}) is not of expected value {inner_value}"
     return {
         'value': inner_value

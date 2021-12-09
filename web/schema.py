@@ -1,7 +1,6 @@
 from transpicere.graphql import *
 import pyodbc
 from graphql import GraphQLField, GraphQLSchema, GraphQLObjectType
-from graphql import GraphQLString
 
 
 def init_db():
