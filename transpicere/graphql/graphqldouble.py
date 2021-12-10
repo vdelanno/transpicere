@@ -10,7 +10,6 @@ def serialize(output_value: float) -> float:
 
 
 def parse(input_value: Any) -> float:
-    print(f"input_value {float(input_value)}")
     try:
         # bool MUST be first: bool is instance of int
         return float(input_value)

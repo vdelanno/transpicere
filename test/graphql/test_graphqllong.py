@@ -27,6 +27,7 @@ import sys
     ("false", 0, False),
     ('"1"', 1, False),
     ('"1.0"', 1, False),
+    (str(sys.maxsize) + '0', 92233720368547758070, False),
     # failures
     ("a", None, True),
     ("1a", None, True),
@@ -36,7 +37,6 @@ import sys
     ({
         1: 0
     }, None, True),
-    (str(print(sys.maxsize)) + '0', None, True),
 ])
 def test_graphqllong_schema(input_value, inner_value, expect_error):
     check_scalar_schema(GraphQLLong, input_value,

@@ -1,16 +1,14 @@
 # mypy: allow-untyped-defs
-from graphql.type.definition import GraphQLField, GraphQLScalarType
-import pyodbc
 import logging
-from typing import Dict, List, TypeVar, Any, Callable, Iterator, Generator
-from decimal import Decimal
-from datetime import date, time, datetime
-from uuid import UUID
-from dataclasses import dataclass, field
-from transpicere.graphql import *
-from transpicere.generator.node import Node, Field, Query
-from transpicere.generator.configuration import ConfigImpl
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Generator, Iterator, List, TypeVar
+
+import pyodbc
+from graphql.type.definition import GraphQLField, GraphQLScalarType
 from transpicere.generator.base_types import BaseType
+from transpicere.generator.configuration import ConfigImpl
+from transpicere.generator.node import Field, Query, Node, Source
+from transpicere.graphql import *
 
 LOGGER = logging.Logger(__name__)
 
@@ -82,16 +80,15 @@ class DbResolver:
 
 
 class DbGenerator():
-    def get_node(self, config: DbConfig) -> Node:
+    def get(self, config: DbConfig) -> Source:
         with pyodbc.connect(config.connection_string) as cnxn:
             cursor = cnxn.cursor()
             node_name = self._get_node_name(cursor, config)
             fields = self._get_fields(cursor, config)
             queries = self._get_queries(cursor, config, node_name, fields)
 
-            return Node(
-                name=node_name,
-                fields=fields,
+            return Source(
+                nodes=[Node(name=node_name, fields=fields)],
                 queries=queries
             )
 

@@ -77,7 +77,7 @@ from dateutil.tz import tzutc
     ({
         1: 0
     }, None, True),
-    (str(print(sys.maxsize)) + '0', None, True),
+    (str(sys.maxsize) + '0', None, True),
 
 ])
 def test_graphqldatetime_schema(input_value, inner_value, expect_error):
@@ -144,7 +144,7 @@ def test_graphqldatetime_schema(input_value, inner_value, expect_error):
     ({
         1: 0
     }, None, True),
-    (str(print(sys.maxsize)) + '0', None, True),
+    (str(sys.maxsize) + '0', None, True),
 ])
 def test_graphqldate_schema(input_value, inner_value, expect_error):
     expected = inner_value.isoformat() if inner_value else None
@@ -169,7 +169,7 @@ def test_graphqldate_schema(input_value, inner_value, expect_error):
     ({
         1: 0
     }, None, True),
-    (str(print(sys.maxsize)) + '0', None, True),
+    (str(sys.maxsize) + '0', None, True),
 ])
 def test_graphqltime_schema(input_value, inner_value, expect_error):
     expected = inner_value.isoformat() if inner_value else None

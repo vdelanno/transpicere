@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 
 
 @dataclass
@@ -21,4 +21,9 @@ class Query:
 class Node:
     name: str
     fields: Dict[str, Field]
+
+
+@dataclass
+class Source:
+    nodes: List[Node]
     queries: Dict[str, Query]

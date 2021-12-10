@@ -14,7 +14,10 @@ def parse(input_value: Any) -> int:
         if isinstance(input_value, bool):
             return input_value
         elif isinstance(input_value, int):
-            return False if input_value == 0 else True
+            if input_value == 0:
+                return False
+            elif input_value > 0:
+                return True
         elif isinstance(input_value, float):
             if input_value.is_integer():
                 return parse(int(input_value))
@@ -22,7 +25,7 @@ def parse(input_value: Any) -> int:
             if input_value.lower() == 'true':
                 return True
             elif input_value.lower() == 'false':
-                return True
+                return False
             else:
                 return parse(int(input_value))
         raise ValueError(

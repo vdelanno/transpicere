@@ -92,8 +92,10 @@ class TestDbConfig(unittest.TestCase):
         cfg = DbConfig(connection_string=self.connection_string,
                        table=self.table_name)
         gen = DbGenerator()
-        node = gen.get_node(config=cfg)
-        print(node)
+        source = gen.get(config=cfg)
+        print(source)
+        assert len(source.nodes) == 1
+        node = source.nodes[0]
         assert node.name == f"postgres_transpicere_{self.table_name}"
         assert node.fields == {
             field_name: Field(data_type=field_type,
@@ -113,12 +115,15 @@ class TestDbConfig(unittest.TestCase):
         cfg = DbConfig(connection_string=self.connection_string,
                        table=self.table_name)
         gen = DbGenerator()
-        node = gen.get_node(config=cfg)
-        print(node.queries)
+        source = gen.get(config=cfg)
+        node = source.nodes[0]
+        assert len(source.nodes) == 1
+        queries = source.queries
+        print(queries)
         query_name = f"{node.name}_{index_name}"
-        assert len(node.queries) == 1
-        assert query_name in node.queries
-        query = node.queries[list(node.queries.keys())[0]]
+        assert len(queries) == 1
+        assert query_name in queries
+        query = queries[list(queries.keys())[0]]
         assert not query.is_list == unique
         assert query.return_type == node.name
         assert query.params == {
@@ -141,12 +146,14 @@ class TestDbConfig(unittest.TestCase):
         cfg = DbConfig(connection_string=self.connection_string,
                        table=self.table_name)
         gen = DbGenerator()
-        node = gen.get_node(config=cfg)
-        print(node.queries)
+        source = gen.get(config=cfg)
+        node = source.nodes[0]
+        assert len(source.nodes) == 1
+        queries = source.queries
         query_name = f'{node.name}_{field_name}'
-        assert query_name in node.queries
-        assert len(node.queries) == 1
-        query = node.queries[query_name]
+        assert query_name in queries
+        assert len(queries) == 1
+        query = queries[query_name]
         assert not query.is_list == unique
         assert query.return_type == node.name
         assert query.params == {
@@ -154,6 +161,13 @@ class TestDbConfig(unittest.TestCase):
                               is_nullable=False,
                               is_list=False)
         }
+
+    def test_invalid_table_name(self):
+        cfg = DbConfig(connection_string=self.connection_string,
+                       table="no_such_table")
+        gen = DbGenerator()
+        with pytest.raises(ValueError):
+            gen.get(config=cfg)
 
 
 class TestDbResolver(unittest.TestCase):
@@ -212,9 +226,12 @@ class TestDbResolver(unittest.TestCase):
         cfg = DbConfig(connection_string=self.connection_string,
                        table=self.table_name)
         gen = DbGenerator()
-        node = gen.get_node(config=cfg)
-        assert len(node.queries) == 1
-        query = node.queries[next(iter(node.queries.keys()))]
+        source = gen.get(config=cfg)
+        node = source.nodes[0]
+        assert len(source.nodes) == 1
+        queries = source.queries
+        assert len(queries) == 1
+        query = queries[next(iter(queries.keys()))]
         print(query)
         expected = values[0]
         result = query.resolver(data=expected)

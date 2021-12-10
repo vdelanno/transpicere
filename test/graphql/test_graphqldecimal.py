@@ -38,6 +38,7 @@ import sys
     (f"{sys.maxsize}", Decimal(sys.maxsize), False),
     ("1", Decimal(1), False),
     ("1.0", Decimal(1), False),
+    (str(sys.maxsize) + '0', Decimal(92233720368547758070), False),
     # failures
     ("a", None, True),
     ("1a", None, True),
@@ -45,7 +46,6 @@ import sys
     ({
         1: 0
     }, None, True),
-    (str(print(sys.maxsize)) + '0', None, True),
 ])
 def test_graphqldecimal_schema(input_value, inner_value, expect_error):
     if isinstance(input_value, str):
